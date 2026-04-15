@@ -85,7 +85,7 @@ export default async function Home() {
 
         {/* FILTER BUTTONS */}
         <div className="flex justify-center gap-4 mb-16 flex-wrap">
-          {["Music", "Comedy", "Food", "Workshops", "Networking"].map((cat) => (
+          {["Music", "Comedy", "Sports", "Workshops", "Art", "Theatre"].map((cat) => (
             <button
               key={cat}
               className="bg-white/10 px-5 py-2 rounded-full border border-white/20 hover:bg-purple-500 hover:scale-105 transition"
@@ -113,7 +113,15 @@ export default async function Home() {
                   <h4 className="text-2xl font-semibold mb-1">{event.title}</h4>
                   <p className="text-purple-300 text-sm mb-2">{event.city}</p>
                   <p className="text-zinc-300">{event.location}</p>
-                  <p className="text-sm text-zinc-400 mb-3">{event.date}</p>
+                  <p className="text-sm text-zinc-400 mb-3">{
+  new Date(event.date)
+    .toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })
+    .replace(",", "")
+}</p>
                   <p className="text-lg font-bold text-green-400">₹{event.price}</p>
                 </div>
               </div>

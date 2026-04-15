@@ -35,7 +35,7 @@ export default function PlanYourDayPage() {
       <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-purple-500/20 blur-[150px] rounded-full" />
       <div className="relative z-10 max-w-4xl mx-auto">
         <a href="/" className="text-zinc-400 hover:text-white text-sm mb-8 inline-block">
-          ← Back to CityPulse
+          ← Back to VibeIn'
         </a>
         <div className="mt-20 text-center">
           <div className="text-8xl mb-6">🗓️</div>

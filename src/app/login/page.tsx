@@ -57,7 +57,7 @@ function LoginForm() {
       <div className="relative z-10 w-full max-w-md">
         <a href="/" className="block text-center mb-8">
           <span className="text-3xl font-bold bg-gradient-to-r from-purple-300 to-pink-400 bg-clip-text text-transparent">
-            CityPulse
+            VibeIn'
           </span>
         </a>
 
@@ -66,7 +66,7 @@ function LoginForm() {
             {isSignup ? "Create your account" : "Welcome back"}
           </h2>
           <p className="text-zinc-400 text-sm mb-8">
-            {isSignup ? "Join CityPulse to plan, vibe, and create events." : "Log in to access all CityPulse features."}
+            {isSignup ? "Join VibeIn' to plan, vibe, and create events." : "Log in to access all VibeIn' features."}
           </p>
 
           <button
@@ -141,7 +141,7 @@ function LoginForm() {
           </form>
 
           <p className="text-center text-zinc-400 text-sm mt-6">
-            {isSignup ? "Already have an account?" : "New to CityPulse?"}{" "}
+            {isSignup ? "Already have an account?" : "New to VibeIn'?"}{" "}
             <button
               onClick={() => { setIsSignup(!isSignup); setError(""); }}
               className="text-purple-300 hover:text-purple-200 font-medium"
