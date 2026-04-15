@@ -210,7 +210,7 @@ export default function VibeRoomPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white text-sm mb-2 block">← Back to CityPulse</button>
+            <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white text-sm mb-2 block">← Back to VibeIn'</button>
             <h1 className="text-4xl font-bold">👥 Vibe with Strangers</h1>
             
             <div className="text-zinc-400 mt-1 flex items-center gap-1">
