@@ -11,7 +11,6 @@ export default function VibeRoomPage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
-  const [joins, setJoins] = useState<any[]>([]);
   const [reactions, setReactions] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingPost, setEditingPost] = useState<any>(null);
@@ -52,7 +51,7 @@ export default function VibeRoomPage() {
       setUserCity(city);
       setAuthorized(true);
 
-      await Promise.all([loadPosts(city), loadJoins(), loadReactions()]);
+      await Promise.all([loadPosts(city), loadReactions()]);
       setLoading(false);
     });
   }, [router]);
@@ -62,14 +61,13 @@ export default function VibeRoomPage() {
     if (!authorized) return;
     const channel = supabase.channel("vibe-global-feed")
       .on("postgres_changes", { event: "*", schema: "public", table: "vibe_posts" }, () => loadPosts(userCity))
-      .on("postgres_changes", { event: "*", schema: "public", table: "vibe_joins" }, () => loadJoins())
       .on("postgres_changes", { event: "*", schema: "public", table: "vibe_reactions" }, () => loadReactions())
       .subscribe();
     
     return () => { supabase.removeChannel(channel); };
   }, [authorized, userCity]);
 
-  // 3. Chat Real-time Listener
+  // 3. Chat Real-time Listener (Optimistic)
   useEffect(() => {
     if (!activeGroupChat) return;
 
@@ -108,11 +106,6 @@ export default function VibeRoomPage() {
       .ilike("city", city.trim())
       .order("created_at", { ascending: false });
     setPosts(data || []);
-  };
-
-  const loadJoins = async () => {
-    const { data } = await supabase.from("vibe_joins").select("*, profiles!user_id(full_name, avatar_url)");
-    setJoins(data || []);
   };
 
   const loadReactions = async () => {
@@ -167,12 +160,22 @@ export default function VibeRoomPage() {
     loadReactions();
   };
 
+  const openGroupChat = (post: any) => {
+    const userReaction = reactions.find(r => r.post_id === post.id && r.user_id === user.id);
+    const isAllowed = post.user_id === user.id || userReaction?.type === 'like';
+
+    if (!isAllowed) {
+      alert("Click 'Interested' (👍) to join the group chat!");
+      return;
+    }
+    setActiveGroupChat(post);
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !activeGroupChat) return;
     const content = newMessage.trim();
     setNewMessage("");
 
-    // Optimistic UI Update
     const tempMsg = {
       id: Date.now(),
       message: content,
@@ -207,10 +210,9 @@ export default function VibeRoomPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white text-sm mb-2 block">← Back to VibeIn'</button>
+            <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white text-sm mb-2 block">← Back to CityPulse</button>
             <h1 className="text-4xl font-bold">👥 Vibe with Strangers</h1>
             
-            {/* FIX: Changed from <p> to <div> to avoid Hydration Error */}
             <div className="text-zinc-400 mt-1 flex items-center gap-1">
               Events in{" "}
               <div className="relative inline-block">
@@ -273,23 +275,14 @@ export default function VibeRoomPage() {
         {/* Feed */}
         <div className="space-y-6 pb-20">
           {posts.length === 0 ? (
-            /* NEW: Enhanced No Vibes Box */
             <div className="bg-white/5 border border-purple-500/20 rounded-3xl p-12 text-center flex flex-col items-center justify-center backdrop-blur-xl">
               <div className="text-5xl mb-6">✨</div>
               <h3 className="text-2xl font-bold text-white mb-2">No vibes yet in {userCity}</h3>
-              <p className="text-zinc-400 mb-8 max-w-xs mx-auto text-sm">
-                Be the first one to start the party! Post a vibe and find people to join you.
-              </p>
-              <button 
-                onClick={() => setShowForm(true)}
-                className="bg-purple-600 hover:bg-purple-500 px-8 py-3 rounded-xl font-bold transition shadow-lg shadow-purple-500/20"
-              >
-                Create the First Vibe 🚀
-              </button>
+              <p className="text-zinc-400 mb-8 max-w-xs mx-auto text-sm">Be the first one to start the party! Post a vibe and find people to join you.</p>
+              <button onClick={() => setShowForm(true)} className="bg-purple-600 hover:bg-purple-500 px-8 py-3 rounded-xl font-bold transition">Create First Vibe 🚀</button>
             </div>
           ) : (
             posts.map((post) => {
-              const userJoined = joins.some(j => j.post_id === post.id && j.user_id === user.id);
               const postLikes = reactions.filter(r => r.post_id === post.id && r.type === 'like');
               const postDislikes = reactions.filter(r => r.post_id === post.id && r.type === 'dislike');
               const userReaction = reactions.find(r => r.post_id === post.id && r.user_id === user.id);
@@ -318,8 +311,8 @@ export default function VibeRoomPage() {
                   <div className="mb-6">
                     <h3 className="text-2xl font-bold text-white mb-2">🎉 {post.event_title}</h3>
                     <div className="flex flex-wrap gap-4 text-zinc-400 text-sm mb-3">
-                      <span className="flex items-center gap-1">📅 {post.event_date}</span>
-                      <span className="flex items-center gap-1">📍 {post.event_location}</span>
+                      <span>📅 {post.event_date}</span>
+                      <span>📍 {post.event_location}</span>
                     </div>
                     <p className="text-zinc-300 leading-relaxed">{post.message}</p>
                   </div>
@@ -335,18 +328,7 @@ export default function VibeRoomPage() {
                       <span className="text-zinc-500 text-sm ml-2">{postLikes.length} interested</span>
                     </div>
 
-                    <div className="flex gap-2">
-                      {!isOwner && (
-                        <button onClick={async () => {
-                          if (userJoined) await supabase.from("vibe_joins").delete().eq("post_id", post.id).eq("user_id", user.id);
-                          else await supabase.from("vibe_joins").insert({ post_id: post.id, user_id: user.id });
-                          loadJoins();
-                        }} className={`px-5 py-2 rounded-xl text-sm font-bold transition ${userJoined ? 'bg-purple-600' : 'bg-white/10 hover:bg-white/20'}`}>
-                          {userJoined ? '✓ Joined' : '🙋 I\'m in!'}
-                        </button>
-                      )}
-                      <button onClick={() => setActiveGroupChat(post)} className="bg-purple-600 hover:bg-purple-500 px-5 py-2 rounded-xl text-sm font-bold shadow-lg transition">💬 Chat</button>
-                    </div>
+                    <button onClick={() => openGroupChat(post)} className="bg-purple-600 hover:bg-purple-500 px-6 py-2 rounded-xl text-sm font-bold shadow-lg transition">💬 Chat</button>
                   </div>
                 </div>
               );
