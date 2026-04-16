@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import FeatureButton from "@/components/FeatureButton";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/Navbar"
+import { CITIES } from "@/lib/constants";
 
-const CATEGORIES = ["All", "Music", "Comedy", "Games", "Workshops", "Arts & Craft", "Theatre", "Kids"];
-const CITIES = ["Delhi", "Mumbai", "Bangalore", "Hyderabad"];
+const CATEGORIES = ["All", "Music", "Comedy", "Fun Activities", "Workshops", "Arts & Crafts", "Theatre", "Kids"];
+
 
 export default function Home() {
   const [events, setEvents] = useState<any[]>([]);
@@ -15,6 +16,9 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showCityDrop, setShowCityDrop] = useState(false);
+const [cityBtnRect, setCityBtnRect] = useState<DOMRect | null>(null);
+const cityBtnRef = useRef<HTMLButtonElement>(null);
 
   const features = [
     {
@@ -106,12 +110,27 @@ export default function Home() {
     setFiltered(result);
   }, [selectedCategory, search, events]);
 
+  useEffect(() => {
+  const handleScroll = () => {
+    if (showCityDrop) setShowCityDrop(false);
+  };
+  window.addEventListener("scroll", handleScroll, { passive: true });
+  return () => window.removeEventListener("scroll", handleScroll);
+}, [showCityDrop]);
+
   const handleCityChange = (city: string) => {
     setSelectedCity(city);
     setSelectedCategory("All");
     setSearch("");
     fetchEvents(city);
   };
+
+  const handleCityDropToggle = () => {
+  if (!showCityDrop && cityBtnRef.current) {
+    setCityBtnRect(cityBtnRef.current.getBoundingClientRect());
+  }
+  setShowCityDrop(!showCityDrop);
+};
 
   return (
     <main className="relative overflow-hidden min-h-screen bg-gradient-to-br from-[#140b2d] via-[#1f1147] to-[#2a145c] text-white px-10 py-8">
@@ -154,17 +173,16 @@ export default function Home() {
 
         {/* SEARCH + CITY */}
         <div className="mb-6 max-w-5xl mx-auto flex gap-4">
-          <select
-            value={selectedCity}
-            onChange={(e) => handleCityChange(e.target.value)}
-            className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white focus:outline-none focus:border-purple-400"
-          >
-            {CITIES.map((city) => (
-              <option key={city} value={city} className="bg-[#1f1147]">
-                {city}
-              </option>
-            ))}
-          </select>
+       <div className="relative">
+  <button
+    ref={cityBtnRef}
+    onClick={handleCityDropToggle}
+    className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white focus:outline-none focus:border-purple-400 flex items-center gap-3 font-medium"
+  >
+    📍 {selectedCity}
+    <span className={`text-[10px] transition-transform ${showCityDrop ? "rotate-180" : ""}`}>▼</span>
+  </button>
+</div>
 
           <input
             type="text"
@@ -235,9 +253,9 @@ export default function Home() {
                       <div className="w-full h-full flex items-center justify-center text-5xl">
                         {event.category === "Music" ? "🎵" :
                          event.category === "Comedy" ? "😂" :
-                         event.category === "Games" ? "⚽" :
+                         event.category === "Fun Activities" ? "⚽" :
                          event.category === "Workshops" ? "🛠️" :
-                         event.category === "Arts & Craft" ? "🎨" :
+                         event.category === "Arts & Crafts" ? "🎨" :
                          event.category === "Theatre" ? "🎭" :
                          event.category === "Kids" ? "🧸" : "🎉"}
                       </div>
@@ -287,6 +305,34 @@ export default function Home() {
         </section>
 
       </div>
+
+      {/* City Dropdown — fixed to escape stacking context */}
+{showCityDrop && cityBtnRect && (
+  <>
+    <div className="fixed inset-0 z-[60]" onClick={() => setShowCityDrop(false)} />
+    <div
+      className="fixed z-[70] bg-[#1a1138] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+      style={{
+        top: cityBtnRect.bottom + 8,
+        left: cityBtnRect.left,
+        width: cityBtnRect.width,
+      }}
+    >
+      {CITIES.map(c => (
+        <button
+          key={c}
+          onClick={() => { handleCityChange(c); setShowCityDrop(false); }}
+          className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${
+            selectedCity === c ? "bg-purple-600 text-white" : "hover:bg-white/10 text-zinc-300"
+          }`}
+        >
+          {c}
+        </button>
+      ))}
+    </div>
+  </>
+)}
+
     </main>
   );
 }

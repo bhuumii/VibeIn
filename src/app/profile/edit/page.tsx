@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { CITIES } from "@/lib/constants";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -19,6 +20,10 @@ export default function EditProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [showCityDrop, setShowCityDrop] = useState(false);
+const [cityBtnRect, setCityBtnRect] = useState<DOMRect | null>(null);
+const cityBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -39,6 +44,15 @@ export default function EditProfilePage() {
       setLoading(false);
     });
   }, [router]);
+
+  // Close city dropdown on scroll
+useEffect(() => {
+  const handleScroll = () => {
+    if (showCityDrop) setShowCityDrop(false);
+  };
+  window.addEventListener("scroll", handleScroll, { passive: true });
+  return () => window.removeEventListener("scroll", handleScroll);
+}, [showCityDrop]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +106,13 @@ export default function EditProfilePage() {
       </div>
     );
   }
+
+  const handleCityDropToggle = () => {
+  if (!showCityDrop && cityBtnRef.current) {
+    setCityBtnRect(cityBtnRef.current.getBoundingClientRect());
+  }
+  setShowCityDrop(!showCityDrop);
+};
 
   return (
     <main className="relative min-h-screen bg-gradient-to-br from-[#140b2d] via-[#1f1147] to-[#2a145c] text-white px-6 py-8">
@@ -188,18 +209,15 @@ export default function EditProfilePage() {
             </div>
             <div>
               <label className="text-sm text-zinc-400 block mb-1">City</label>
-              <select
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400"
-              >
-                <option value="">Select your city</option>
-                <option value="Delhi">Delhi</option>
-                <option value="Mumbai">Mumbai</option>
-                <option value="Bangalore">Bangalore</option>
-                <option value="Hyderabad">Hyderabad</option>
-            
-              </select>
+             <button
+  type="button"
+  ref={cityBtnRef}
+  onClick={handleCityDropToggle}
+  className="w-full flex items-center justify-between p-3 rounded-xl bg-white/10 border border-white/20 text-white hover:border-purple-400 transition font-medium"
+>
+  <span>{city || "Select your city"}</span>
+  <span className={`text-[10px] transition-transform ${showCityDrop ? "rotate-180" : ""}`}>▼</span>
+</button>
             </div>
             <div>
               <label className="text-sm text-zinc-400 block mb-1">Bio</label>
@@ -269,6 +287,34 @@ export default function EditProfilePage() {
         </div>
 
       </div>
+
+      {/* City Dropdown */}
+{showCityDrop && cityBtnRect && (
+  <>
+    <div className="fixed inset-0 z-[60]" onClick={() => setShowCityDrop(false)} />
+    <div
+      className="fixed z-[70] bg-[#1a1138] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+      style={{
+        top: cityBtnRect.bottom + 8,
+        left: cityBtnRect.left,
+        width: cityBtnRect.width,
+      }}
+    >
+      {["", ...CITIES].map(c => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => { setCity(c); setShowCityDrop(false); }}
+          className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${
+            city === c ? "bg-purple-600 text-white" : "hover:bg-white/10 text-zinc-300"
+          }`}
+        >
+          {c || "Select your city"}
+        </button>
+      ))}
+    </div>
+  </>
+)}
     </main>
   );
 }

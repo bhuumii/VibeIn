@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase"
+import { CITIES } from "@/lib/constants";
 
 export default function VibeRoomPage() {
   const router = useRouter();
@@ -22,7 +23,7 @@ export default function VibeRoomPage() {
   // City states
   const [userCity, setUserCity] = useState("Delhi");
   const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const cities = ["Delhi", "Mumbai", "Hyderabad", "Bangalore"];
+
 
   // Form state
   const [eventTitle, setEventTitle] = useState("");
@@ -228,7 +229,7 @@ export default function VibeRoomPage() {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowCityDropdown(false)}></div>
                     <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1138] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden backdrop-blur-2xl">
-                      {cities.map((city) => (
+                      {CITIES.map((city) => (
                         <button
                           key={city}
                           onClick={() => {
