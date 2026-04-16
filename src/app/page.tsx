@@ -307,7 +307,7 @@ const cityBtnRef = useRef<HTMLButtonElement>(null);
 
       </div>
 
-      {/* City Dropdown — fixed to escape stacking context */}
+      {/* City Dropdown */}
 {showCityDrop && cityBtnRect && (
   <>
     <div className="fixed inset-0 z-[60]" onClick={() => setShowCityDrop(false)} />

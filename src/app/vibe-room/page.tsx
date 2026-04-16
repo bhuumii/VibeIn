@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase"
 import { CITIES } from "@/lib/constants"
 import Breadcrumb from "@/components/Breadcrumb";
+import { toast } from "sonner";
 
 const CATEGORIES = ["Music", "Comedy", "Fun Activities", "Workshops", "Arts & Crafts", "Theatre", "Kids"];
 
@@ -136,10 +137,21 @@ export default function VibeRoomPage() {
       user_id: user.id
     };
 
+    let error = null;
+
     if (editingPost) {
-      await supabase.from("vibe_posts").update(dataObj).eq("id", editingPost.id);
+      const res = await supabase.from("vibe_posts").update(dataObj).eq("id", editingPost.id);
+      error = res.error;
     } else {
-      await supabase.from("vibe_posts").insert(dataObj);
+      const res = await supabase.from("vibe_posts").insert(dataObj);
+      error = res.error;
+    }
+
+    if (error) {
+      console.error("Post error:", error);
+      toast.error("Failed to post vibe: " + error.message);
+      setPosting(false);
+      return;
     }
 
     setShowForm(false);
@@ -151,7 +163,8 @@ export default function VibeRoomPage() {
     setEventCategory("Music");
     setPostMessage("");
     setPosting(false);
-    loadPosts(userCity);
+    await loadPosts(userCity);
+    toast.success(editingPost ? "Vibe updated!" : "Vibe posted!");
   };
 
   const handleEdit = (post: any) => {
@@ -190,7 +203,9 @@ export default function VibeRoomPage() {
     const userReaction = reactions.find(r => r.post_id === post.id && r.user_id === user.id);
     const isAllowed = post.user_id === user.id || userReaction?.type === 'like';
     if (!isAllowed) {
-      alert("Click 'Interested' (👍) to join the group chat!");
+      toast.info("Click 'Interested' (👍) to join the group chat!", {
+        duration: 3000,
+      });
       return;
     }
     setActiveGroupChat(post);
@@ -218,7 +233,7 @@ export default function VibeRoomPage() {
 
     if (error) {
       setGroupMessages(prev => prev.filter(m => m.id !== tempMsg.id));
-      alert("Failed to send message.");
+      toast.error("Failed to send message. Please try again.");
     }
   };
 
