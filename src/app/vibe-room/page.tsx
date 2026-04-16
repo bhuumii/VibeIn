@@ -27,7 +27,7 @@ export default function VibeRoomPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
-const [alertModal, setAlertModal] = useState<string | null>(null);
+  const [alertModal, setAlertModal] = useState<string | null>(null);
 
   // City states
   const [userCity, setUserCity] = useState("Delhi");
@@ -143,7 +143,6 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
     };
 
     let error = null;
-
     if (editingPost) {
       const res = await supabase.from("vibe_posts").update(dataObj).eq("id", editingPost.id);
       error = res.error;
@@ -153,7 +152,6 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
     }
 
     if (error) {
-      console.error("Post error:", error);
       toast.error("Failed to post vibe: " + error.message);
       setPosting(false);
       return;
@@ -169,7 +167,7 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
     setPostMessage("");
     setPosting(false);
     await loadPosts(userCity);
-    toast.success(editingPost ? "Vibe updated!" : "Vibe posted!");
+    toast.success(editingPost ? "Vibe updated! ✅" : "Vibe posted! 🚀");
   };
 
   const handleEdit = (post: any) => {
@@ -184,10 +182,20 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDelete = async (postId: string) => {
-    if (!confirm("Delete this vibe?")) return;
-    await supabase.from("vibe_posts").delete().eq("id", postId);
-    loadPosts(userCity);
+  const handleDelete = (postId: string) => {
+    setConfirmModal({
+      message: "Delete this vibe? This can't be undone.",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        const { error } = await supabase.from("vibe_posts").delete().eq("id", postId);
+        if (error) {
+          toast.error("Failed to delete vibe.");
+          return;
+        }
+        toast.success("Vibe deleted.");
+        loadPosts(userCity);
+      }
+    });
   };
 
   const handleReaction = async (postId: string, type: 'like' | 'dislike') => {
@@ -208,9 +216,7 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
     const userReaction = reactions.find(r => r.post_id === post.id && r.user_id === user.id);
     const isAllowed = post.user_id === user.id || userReaction?.type === 'like';
     if (!isAllowed) {
-      toast.info("Click 'Interested' (👍) to join the group chat!", {
-        duration: 3000,
-      });
+      setAlertModal("Click 'Interested' (👍) to join the group chat!");
       return;
     }
     setActiveGroupChat(post);
@@ -238,7 +244,7 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
 
     if (error) {
       setGroupMessages(prev => prev.filter(m => m.id !== tempMsg.id));
-      toast.error("Failed to send message. Please try again.");
+      toast.error("Failed to send message.");
     }
   };
 
@@ -251,7 +257,11 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
 
   const getInitials = (name: string) => (name || "?").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
-  if (loading) return <div className="min-h-screen bg-[#0f0a24] flex items-center justify-center text-white">Loading...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-[#0f0a24] flex items-center justify-center text-white">
+      <div className="w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <main className="relative min-h-screen bg-gradient-to-br from-[#140b2d] via-[#1f1147] to-[#2a145c] text-white px-6 py-8 overflow-x-hidden">
@@ -264,7 +274,7 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold">Vibe with Strangers</h1>
+            <h1 className="text-4xl font-bold">👥 Vibe with Strangers</h1>
             <div className="text-zinc-400 mt-1 flex items-center gap-1">
               Events in{" "}
               <div className="relative inline-block">
@@ -317,7 +327,6 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
             </h2>
             <form onSubmit={handlePost} className="space-y-4">
 
-              {/* Title */}
               <div>
                 <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Event Name *</label>
                 <input
@@ -328,7 +337,6 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
                 />
               </div>
 
-              {/* Date + Time */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Date</label>
@@ -348,7 +356,6 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
                 </div>
               </div>
 
-              {/* Venue */}
               <div>
                 <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Venue / Location *</label>
                 <input
@@ -359,7 +366,6 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
                 />
               </div>
 
-              {/* City + Category */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">City</label>
@@ -380,7 +386,6 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
                 </div>
               </div>
 
-              {/* Details */}
               <div>
                 <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Details / Description</label>
                 <textarea
@@ -423,7 +428,9 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden border border-purple-400/30">
-                        {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" /> : <span className="text-zinc-500 font-bold">{getInitials(post.profiles?.full_name)}</span>}
+                        {post.profiles?.avatar_url
+                          ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" />
+                          : <span className="text-zinc-500 font-bold">{getInitials(post.profiles?.full_name)}</span>}
                       </div>
                       <div>
                         <h4 className="font-bold text-lg">{post.profiles?.full_name || "User"}</h4>
@@ -439,7 +446,7 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
                   </div>
 
                   <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h3 className="text-2xl font-bold text-white">🎉 {post.event_title}</h3>
                       {post.event_category && (
                         <span className="bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs font-bold px-2 py-0.5 rounded-full">
@@ -492,7 +499,9 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
               return (
                 <div key={msg.id || i} className={`flex gap-3 ${isMe ? "flex-row-reverse" : ""}`}>
                   <div className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0 flex items-center justify-center overflow-hidden border border-purple-500/30">
-                    {msg.profiles?.avatar_url ? <img src={msg.profiles.avatar_url} className="w-full h-full object-cover" /> : <span className="text-[10px]">{getInitials(msg.profiles?.full_name)}</span>}
+                    {msg.profiles?.avatar_url
+                      ? <img src={msg.profiles.avatar_url} className="w-full h-full object-cover" />
+                      : <span className="text-[10px]">{getInitials(msg.profiles?.full_name)}</span>}
                   </div>
                   <div className={`max-w-[80%] flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                     <div className={`px-4 py-2.5 rounded-2xl text-sm ${isMe ? "bg-purple-600 text-white rounded-tr-none" : "bg-white/10 text-zinc-200 rounded-tl-none"}`}>
@@ -507,7 +516,13 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
 
           <div className="p-6 border-t border-white/10 bg-white/5">
             <div className="flex gap-2">
-              <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMessage()} placeholder="Message..." className="flex-1 p-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm focus:border-purple-500 outline-none transition" />
+              <input
+                type="text" value={newMessage}
+                onChange={e => setNewMessage(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && sendMessage()}
+                placeholder="Message..."
+                className="flex-1 p-3.5 rounded-2xl bg-white/5 border border-white/10 text-sm focus:border-purple-500 outline-none transition"
+              />
               <button onClick={sendMessage} className="bg-purple-600 hover:bg-purple-500 px-5 rounded-2xl transition font-bold">→</button>
             </div>
           </div>
@@ -533,6 +548,23 @@ const [alertModal, setAlertModal] = useState<string | null>(null);
             ))}
           </div>
         </>
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal && (
+        <ConfirmModal
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
+      {/* Alert Modal */}
+      {alertModal && (
+        <AlertModal
+          message={alertModal}
+          onClose={() => setAlertModal(null)}
+        />
       )}
     </main>
   );
