@@ -5,26 +5,32 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { CITIES } from "@/lib/constants"
 import Breadcrumb from "@/components/Breadcrumb";
+import ConfirmModal from "@/components/ConfirmModal";
+import AlertModal from "@/components/AlertModal";
 
 const CATEGORIES = ["Music", "Comedy", "Fun Activities", "Workshops", "Arts & Crafts", "Theatre", "Kids"];
 
 export default function CreateEventPage() {
   const router = useRouter();
 
-  const [loading, setLoading] = useState(true);
-  const [posting, setPosting] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading]   = useState(true);
+  const [posting, setPosting]   = useState(false);
+  const [user, setUser]         = useState<any>(null);
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Modals
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const [alertModal, setAlertModal]     = useState<string | null>(null);
+
   // City dropdown
   const [showCityDrop, setShowCityDrop] = useState(false);
-  const [cityBtnRect, setCityBtnRect] = useState<DOMRect | null>(null);
+  const [cityBtnRect, setCityBtnRect]   = useState<DOMRect | null>(null);
   const cityBtnRef = useRef<HTMLButtonElement>(null);
 
   // Category dropdown
   const [showCatDrop, setShowCatDrop] = useState(false);
-  const [catBtnRect, setCatBtnRect] = useState<DOMRect | null>(null);
+  const [catBtnRect, setCatBtnRect]   = useState<DOMRect | null>(null);
   const catBtnRef = useRef<HTMLButtonElement>(null);
 
   const [form, setForm] = useState({
@@ -50,15 +56,14 @@ export default function CreateEventPage() {
     initializePage();
   }, []);
 
-  // Close dropdowns on scroll
-useEffect(() => {
-  const handleScroll = () => {
-    if (showCityDrop) setShowCityDrop(false);
-    if (showCatDrop) setShowCatDrop(false);
-  };
-  window.addEventListener("scroll", handleScroll, { passive: true });
-  return () => window.removeEventListener("scroll", handleScroll);
-}, [showCityDrop, showCatDrop]);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (showCityDrop) setShowCityDrop(false);
+      if (showCatDrop) setShowCatDrop(false);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [showCityDrop, showCatDrop]);
 
   const fetchMyEvents = async (userId: string) => {
     const { data, error } = await supabase
@@ -78,26 +83,31 @@ useEffect(() => {
       if (editingId) {
         const { error } = await supabase.from("events").update({ ...form }).eq("id", editingId);
         if (error) throw error;
-        alert("Event updated successfully!");
+        setAlertModal("Event updated successfully! ✅");
       } else {
         const { error } = await supabase.from("events").insert({ user_id: user.id, is_user_created: true, ...form });
         if (error) throw error;
-        alert("Event created! It will now show on the homepage 🎉");
+        setAlertModal("Event created! It will now show on the homepage 🎉");
       }
       resetForm();
       await fetchMyEvents(user.id);
     } catch (err: any) {
       console.error(err);
-      alert(err.message);
+      setAlertModal(err.message);
     }
     setPosting(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this event?")) return;
-    const { error } = await supabase.from("events").delete().eq("id", id);
-    if (error) { alert(error.message); return; }
-    await fetchMyEvents(user.id);
+  const handleDelete = (id: string) => {
+    setConfirmModal({
+      message: "Delete this event? This can't be undone.",
+      onConfirm: async () => {
+        setConfirmModal(null);
+        const { error } = await supabase.from("events").delete().eq("id", id);
+        if (error) { setAlertModal(error.message); return; }
+        await fetchMyEvents(user.id);
+      }
+    });
   };
 
   const handleEdit = (event: any) => {
@@ -150,34 +160,31 @@ useEffect(() => {
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#140b2d] via-[#1f1147] to-[#2a145c] text-white px-6 py-8">
       <div className="pointer-events-none fixed inset-0 z-0">
-  <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-purple-600/20 blur-[160px] rounded-full" />
-  <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-indigo-600/20 blur-[140px] rounded-full" />
-</div>
+        <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-purple-600/20 blur-[160px] rounded-full" />
+        <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-indigo-600/20 blur-[140px] rounded-full" />
+      </div>
 
       <div className="relative z-10 max-w-4xl mx-auto">
 
-           <Breadcrumb crumbs={[
-  { label: "Home", href: "/" },
-  { label: "Create Event" }
-]} />
+        <Breadcrumb crumbs={[
+          { label: "Home", href: "/" },
+          { label: "Create Event" }
+        ]} />
 
-        <h1 className="text-4xl font-bold mb-6">Create Your Event</h1>
+        <h1 className="text-4xl font-bold mb-6">✨ Create Your Event</h1>
 
         <form onSubmit={handleSubmit} className="bg-white/10 p-8 rounded-2xl border border-white/20 space-y-4">
 
-          {/* Title */}
           <div>
             <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Event Title *</label>
             <input
-              required
-              placeholder="e.g. Poetry Open Mic Night"
+              required placeholder="e.g. Poetry Open Mic Night"
               value={form.title}
               onChange={e => setForm({ ...form, title: e.target.value })}
               className="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-400 transition"
             />
           </div>
 
-          {/* Date + Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Date *</label>
@@ -197,7 +204,6 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Location */}
           <div>
             <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Venue / Location *</label>
             <input
@@ -208,15 +214,11 @@ useEffect(() => {
             />
           </div>
 
-          {/* City + Category */}
           <div className="grid grid-cols-2 gap-4">
-
-            {/* City */}
             <div>
               <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">City *</label>
               <button
-                type="button"
-                ref={cityBtnRef}
+                type="button" ref={cityBtnRef}
                 onClick={handleCityDropToggle}
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-white/10 border border-white/20 text-white hover:border-purple-400 transition font-medium"
               >
@@ -224,13 +226,10 @@ useEffect(() => {
                 <span className={`text-[10px] transition-transform ${showCityDrop ? "rotate-180" : ""}`}>▼</span>
               </button>
             </div>
-
-            {/* Category */}
             <div>
               <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Category *</label>
               <button
-                type="button"
-                ref={catBtnRef}
+                type="button" ref={catBtnRef}
                 onClick={handleCatDropToggle}
                 className="w-full flex items-center justify-between p-3 rounded-xl bg-white/10 border border-white/20 text-white hover:border-purple-400 transition font-medium"
               >
@@ -240,7 +239,6 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Price */}
           <div>
             <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Price (₹)</label>
             <input
@@ -251,7 +249,6 @@ useEffect(() => {
             />
           </div>
 
-          {/* Image URL */}
           <div>
             <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Image URL</label>
             <input
@@ -265,7 +262,6 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Contact */}
           <div>
             <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Contact / Booking Link</label>
             <input
@@ -276,7 +272,6 @@ useEffect(() => {
             />
           </div>
 
-          {/* Buttons */}
           <div className="flex gap-3 pt-2">
             {editingId && (
               <button type="button" onClick={resetForm} className="flex-1 py-3 rounded-xl bg-white/10 border border-white/20 hover:bg-white/20 font-semibold transition">
@@ -295,7 +290,6 @@ useEffect(() => {
         {/* My Events */}
         <div className="mt-12">
           <h2 className="text-2xl font-bold mb-4">📌 My Created Events</h2>
-
           {myEvents.length === 0 ? (
             <p className="text-zinc-400">No events created yet.</p>
           ) : (
@@ -371,6 +365,23 @@ useEffect(() => {
             ))}
           </div>
         </>
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal && (
+        <ConfirmModal
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
+
+      {/* Alert Modal */}
+      {alertModal && (
+        <AlertModal
+          message={alertModal}
+          onClose={() => setAlertModal(null)}
+        />
       )}
     </main>
   );

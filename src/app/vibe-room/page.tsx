@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase"
 import { CITIES } from "@/lib/constants"
 import Breadcrumb from "@/components/Breadcrumb";
 import { toast } from "sonner";
+import ConfirmModal from "@/components/ConfirmModal";
+import AlertModal from "@/components/AlertModal";
 
 const CATEGORIES = ["Music", "Comedy", "Fun Activities", "Workshops", "Arts & Crafts", "Theatre", "Kids"];
 
@@ -23,6 +25,9 @@ export default function VibeRoomPage() {
   const [groupMessages, setGroupMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const [confirmModal, setConfirmModal] = useState<{ message: string; onConfirm: () => void } | null>(null);
+const [alertModal, setAlertModal] = useState<string | null>(null);
 
   // City states
   const [userCity, setUserCity] = useState("Delhi");

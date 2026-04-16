@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { CITIES } from "@/lib/constants"
 import Breadcrumb from "@/components/Breadcrumb";
+import ConfirmModal from "@/components/ConfirmModal";
+import AlertModal from "@/components/AlertModal";
 
 // ── Types 
 interface Event {
@@ -20,9 +22,6 @@ interface Event {
   price?: string;
 }
 
-
-
-
 const ALL_CATEGORIES = ["All", "Music", "Comedy", "Fun Activities", "Workshops", "Arts & Craft", "Theatre", "Kids"];
 
 const MOODS = [
@@ -33,7 +32,6 @@ const MOODS = [
   { label: "Creative 🎨",    value: "creative",    color: "from-green-500 to-emerald-400" },
   { label: "Romantic 💫",    value: "romantic",    color: "from-rose-400 to-pink-600" },
 ];
-
 
 const MOOD_TO_CATEGORIES: Record<string, string[]> = {
   adventurous: ["Fun Activities", "Workshops"],
@@ -47,32 +45,13 @@ const MOOD_TO_CATEGORIES: Record<string, string[]> = {
 const CATEGORY_ICONS: Record<string, string> = {
   "Music":           "🎵",
   "Comedy":          "😂",
-  "Fun Activities": "🎡",
+  "Fun Activities":  "🎡",
   "Workshops":       "🛠️",
-  "Arts & Crafts":    "🎨",
+  "Arts & Crafts":   "🎨",
   "Theatre":         "🎭",
   "Kids":            "🧸",
 };
 const categoryIcon = (cat: string) => CATEGORY_ICONS[cat] || "✨";
-
-function generateShareToken() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-function buildMailtoLink(
-  email: string, city: string, date: string,
-  mood: string, cart: Event[], shareLink: string
-) {
-  const moodLabel = MOODS.find(m => m.value === mood)?.label || "Custom";
-  const formattedDate = new Date(date + "T12:00:00").toLocaleDateString("en-IN", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-  });
-  const lines = cart.map((e, i) =>
-    `${i + 1}. ${e.title}\n   🕐 ${e.time || "TBD"}  |  📍 ${e.location}  |  🏷️ ${e.category.trim()}${e.price ? `  |  ₹${e.price}` : ""}`
-  ).join("\n\n");
-  const body = `Hey! 👋\n\nI planned a ${moodLabel} day in ${city} on ${formattedDate}!\n\nHere's the itinerary:\n\n${lines}\n\n${shareLink ? `👉 View here: ${shareLink}` : ""}\n\nSee you there! 🎉\n— Shared via VibeIn'`;
-  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`My Day Plan in ${city} — ${formattedDate}`)}&body=${encodeURIComponent(body)}`;
-}
 
 // ── AI Suggest 
 async function getAISuggestion(mood: string, city: string, events: Event[]): Promise<string[]> {
@@ -109,9 +88,7 @@ export default function PlanYourDayPage() {
   const router = useRouter();
   const [loading, setLoading]           = useState(true);
   const [user, setUser]                 = useState<any>(null);
-  const [userEmail, setUserEmail]       = useState("");
 
-  // filters
   const [city, setCity]                 = useState("Delhi");
   const [date, setDate]                 = useState(() => new Date().toISOString().slice(0, 10));
   const [mood, setMood]                 = useState("");
@@ -120,59 +97,43 @@ export default function PlanYourDayPage() {
   const [cityBtnRect, setCityBtnRect]   = useState<DOMRect | null>(null);
   const cityBtnRef                      = useRef<HTMLButtonElement>(null);
 
-  // events
   const [events, setEvents]             = useState<Event[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
-
-  // cart = itinerary being built
   const [cart, setCart]                 = useState<Event[]>([]);
-
-  // ai
   const [aiLoading, setAiLoading]       = useState(false);
-
-  // save/share
   const [saving, setSaving]             = useState(false);
-  const [shareLink, setShareLink]       = useState("");
-  const [copied, setCopied]             = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [shareEmail, setShareEmail]     = useState("");
+
+  // Modals
+  const [alertModal, setAlertModal]     = useState<string | null>(null);
 
   const cartRef = useRef<HTMLDivElement>(null);
 
-  // ── Auth ──
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { router.push("/login?redirect=/plan-your-day"); return; }
       setUser(session.user);
-      setUserEmail(session.user.email || "");
-
-    
       const { data: profile } = await supabase
         .from("profiles").select("city").eq("id", session.user.id).single();
       if (profile?.city && CITIES.includes(profile.city)) setCity(profile.city);
-
       setLoading(false);
     });
   }, [router]);
 
-  // ── Load events when city changes ──
   useEffect(() => {
     if (!user) return;
     loadEvents();
     setCart([]);
-    setShareLink("");
     setActiveCategory("All");
     setMood("");
   }, [city, user]);
 
-  
-useEffect(() => {
-  const handleScroll = () => {
-    if (showCityDrop) setShowCityDrop(false);
-  };
-  window.addEventListener("scroll", handleScroll, { passive: true });
-  return () => window.removeEventListener("scroll", handleScroll);
-}, [showCityDrop]);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (showCityDrop) setShowCityDrop(false);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [showCityDrop]);
 
   const loadEvents = async () => {
     setEventsLoading(true);
@@ -185,16 +146,14 @@ useEffect(() => {
     setEventsLoading(false);
   };
 
- 
   const normalizecat = (s: string) => s.trim().toLowerCase();
 
-const filteredEvents = activeCategory === "All"
-  ? (mood
-      ? events.filter(e => (MOOD_TO_CATEGORIES[mood] || []).map(normalizecat).includes(normalizecat(e.category)))
-      : events)
-  : events.filter(e => normalizecat(e.category) === normalizecat(activeCategory));
+  const filteredEvents = activeCategory === "All"
+    ? (mood
+        ? events.filter(e => (MOOD_TO_CATEGORIES[mood] || []).map(normalizecat).includes(normalizecat(e.category)))
+        : events)
+    : events.filter(e => normalizecat(e.category) === normalizecat(activeCategory));
 
-  // add/remove from cart
   const toggleCart = (ev: Event) => {
     setCart(prev =>
       prev.find(e => e.id === ev.id)
@@ -218,10 +177,9 @@ const filteredEvents = activeCategory === "All"
     setShowCityDrop(!showCityDrop);
   };
 
-  // ── AI Suggest ──
   const handleAISuggest = async () => {
-    if (!mood) { alert("Pick a mood first!"); return; }
-    if (events.length === 0) { alert(`No events in ${city} yet.`); return; }
+    if (!mood) { setAlertModal("Pick a mood first!"); return; }
+    if (events.length === 0) { setAlertModal(`No events in ${city} yet. Try a different city!`); return; }
     setAiLoading(true);
     const ids = await getAISuggestion(mood, city, events);
     const suggested = events.filter(e => ids.includes(String(e.id)));
@@ -230,38 +188,28 @@ const filteredEvents = activeCategory === "All"
     setTimeout(() => cartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
   };
 
-  // ── Save Plan ──
   const savePlan = async () => {
-    if (cart.length === 0) { alert("Add some events to your itinerary first!"); return; }
+    if (cart.length === 0) { setAlertModal("Add some events to your itinerary first!"); return; }
     setSaving(true);
-    const token = generateShareToken();
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("day_plans")
       .insert({
-        user_id: user.id, city, date, mood,
+        user_id: user.id,
+        city,
+        date,
+        mood,
         event_ids: cart.map(e => String(e.id)),
-        share_token: token,
       })
-      .select().single();
-    if (!error && data) {
-      setShareLink(`${window.location.origin}/plan-your-day/shared/${token}`);
+      .select()
+      .single();
+
+    if (!error) {
+      setAlertModal("Itinerary saved successfully! ✅");
+      setTimeout(() => router.push("/my-itineraries"), 1500);
     } else {
-      alert("Failed to save. Please try again.");
+      setAlertModal("Failed to save. Please try again.");
     }
     setSaving(false);
-  };
-
-  const handleShareEmail = () => {
-    if (!shareEmail.trim()) { alert("Enter an email!"); return; }
-    window.open(buildMailtoLink(shareEmail, city, date, mood, cart, shareLink), "_blank");
-    setShowEmailModal(false);
-    setShareEmail("");
-  };
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(shareLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) return (
@@ -273,7 +221,6 @@ const filteredEvents = activeCategory === "All"
   return (
     <main className="relative min-h-screen bg-[#0f0a24] text-white overflow-x-hidden">
 
-      {/* bg glows */}
       <div className="pointer-events-none fixed inset-0 z-0">
         <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-purple-600/20 blur-[160px] rounded-full" />
         <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-indigo-600/20 blur-[140px] rounded-full" />
@@ -281,32 +228,27 @@ const filteredEvents = activeCategory === "All"
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
 
-        {/* ── Header ── */}
         <div className="mb-8">
           <Breadcrumb crumbs={[
-  { label: "Home", href: "/" },
-  { label: "Plan Your Day" }
-]} />
+            { label: "Home", href: "/" },
+            { label: "Plan Your Day" }
+          ]} />
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold">Plan Your Day</h1>
-              <p className="text-zinc-400 mt-1 text-sm">Pick a mood, build your itinerary, save & share.</p>
+              <h1 className="text-4xl font-bold">🗓️ Plan Your Day</h1>
+              <p className="text-zinc-400 mt-1 text-sm">Pick a mood, build your itinerary & save.</p>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push("/my-itineraries")}
-                className="bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-2.5 rounded-xl text-sm font-semibold transition"
-              >
-                📋 My Itineraries
-              </button>
-            </div>
+            <button
+              onClick={() => router.push("/my-itineraries")}
+              className="bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-2.5 rounded-xl text-sm font-semibold transition"
+            >
+              📋 My Itineraries
+            </button>
           </div>
         </div>
 
-        {/* ── Filters Row ── */}
+        {/* Filters Row */}
         <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-6 flex flex-wrap gap-4 items-end">
-
-          {/* City */}
           <div className="flex-1 min-w-[160px]">
             <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-2 block">City</label>
             <button
@@ -319,9 +261,10 @@ const filteredEvents = activeCategory === "All"
             </button>
           </div>
 
-          {/* Date */}
           <div className="flex-1 min-w-[160px]">
-            <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-2 block">Date <span className="text-zinc-600 normal-case font-normal">(for itinerary label)</span></label>
+            <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-2 block">
+              Date <span className="text-zinc-600 normal-case font-normal">(for itinerary label)</span>
+            </label>
             <input
               type="date" value={date}
               onChange={e => setDate(e.target.value)}
@@ -329,7 +272,6 @@ const filteredEvents = activeCategory === "All"
             />
           </div>
 
-          {/* Mood pills */}
           <div className="flex-1 min-w-[300px]">
             <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-2 block">Mood Filter</label>
             <div className="flex gap-2 flex-wrap">
@@ -349,7 +291,6 @@ const filteredEvents = activeCategory === "All"
             </div>
           </div>
 
-          {/* AI Button */}
           <button
             onClick={handleAISuggest}
             disabled={aiLoading || !mood}
@@ -362,7 +303,7 @@ const filteredEvents = activeCategory === "All"
           </button>
         </div>
 
-        {/* ── Category Tabs ── */}
+        {/* Category Tabs */}
         <div className="flex gap-2 flex-wrap mb-6">
           {ALL_CATEGORIES.map(cat => (
             <button
@@ -377,10 +318,9 @@ const filteredEvents = activeCategory === "All"
               }`}
             >
               {cat.trim()}
-              {/* show count */}
               {cat !== "All" && (
                 <span className="ml-1.5 text-[10px] opacity-50">
-                  {events.filter(e => e.category === cat).length}
+                  {events.filter(e => normalizecat(e.category) === normalizecat(cat)).length}
                 </span>
               )}
             </button>
@@ -392,7 +332,7 @@ const filteredEvents = activeCategory === "All"
           )}
         </div>
 
-        {/* ── Main 2-column layout ── */}
+        {/* Main 2-column layout */}
         <div className="flex gap-6 items-start">
 
           {/* LEFT: Event Picker */}
@@ -433,7 +373,6 @@ const filteredEvents = activeCategory === "All"
                       }`}
                       onClick={() => toggleCart(ev)}
                     >
-                      {/* Image */}
                       {ev.image_url && (
                         <div className="relative h-32 overflow-hidden">
                           <img src={ev.image_url} alt={ev.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -478,11 +417,9 @@ const filteredEvents = activeCategory === "All"
             )}
           </div>
 
-          {/* RIGHT: Cart / Itinerary Panel */}
+          {/* RIGHT: Cart */}
           <div ref={cartRef} className="w-[360px] flex-shrink-0 sticky top-6">
             <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden">
-
-              {/* Cart header */}
               <div className="p-5 border-b border-white/10 bg-white/5">
                 <div className="flex items-center justify-between">
                   <h2 className="font-bold text-lg">🗓️ My Itinerary</h2>
@@ -490,7 +427,7 @@ const filteredEvents = activeCategory === "All"
                     <button onClick={() => setCart([])} className="text-xs text-zinc-500 hover:text-red-400 transition">Clear all</button>
                   )}
                 </div>
-                <div className="flex gap-2 mt-2">
+                <div className="flex gap-2 mt-2 flex-wrap">
                   <span className="text-xs bg-purple-600/20 border border-purple-500/30 text-purple-300 px-2 py-1 rounded-lg">📍 {city}</span>
                   <span className="text-xs bg-white/5 border border-white/10 text-zinc-400 px-2 py-1 rounded-lg">
                     📅 {new Date(date + "T12:00:00").toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
@@ -503,7 +440,6 @@ const filteredEvents = activeCategory === "All"
                 </div>
               </div>
 
-              {/* Cart items */}
               <div className="p-4 max-h-[480px] overflow-y-auto">
                 {cart.length === 0 ? (
                   <div className="text-center py-10">
@@ -516,7 +452,6 @@ const filteredEvents = activeCategory === "All"
                     {cart.map((ev, i) => (
                       <div key={ev.id} className="bg-white/5 border border-white/10 rounded-xl p-3 group">
                         <div className="flex items-start gap-2">
-                          {/* Order number */}
                           <div className="w-6 h-6 rounded-full bg-purple-600/30 border border-purple-500/40 flex items-center justify-center text-xs font-bold text-purple-300 flex-shrink-0 mt-0.5">
                             {i + 1}
                           </div>
@@ -527,7 +462,6 @@ const filteredEvents = activeCategory === "All"
                               <span className="truncate">📍 {ev.location}</span>
                             </div>
                           </div>
-                          {/* Controls */}
                           <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
                             <button onClick={() => moveUp(i)} className="text-zinc-500 hover:text-white text-[10px] px-1">↑</button>
                             <button onClick={() => moveDown(i)} className="text-zinc-500 hover:text-white text-[10px] px-1">↓</button>
@@ -540,49 +474,26 @@ const filteredEvents = activeCategory === "All"
                 )}
               </div>
 
-              {/* Cart actions */}
               {cart.length > 0 && (
-                <div className="p-4 border-t border-white/10 space-y-2">
+                <div className="p-4 border-t border-white/10">
                   <button
                     onClick={savePlan}
                     disabled={saving}
                     className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 font-bold text-sm transition flex items-center justify-center gap-2"
                   >
-                    {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving…</> : <>💾 Save Itinerary</>}
+                    {saving
+                      ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving…</>
+                      : <>💾 Save Itinerary</>
+                    }
                   </button>
-
-                  {shareLink ? (
-                    <button onClick={copyLink} className="w-full py-3 rounded-xl bg-green-600/20 border border-green-500/40 hover:bg-green-600/30 text-green-300 font-bold text-sm transition">
-                      {copied ? "✅ Copied!" : "🔗 Copy Share Link"}
-                    </button>
-                  ) : (
-                    <button onClick={savePlan} className="w-full py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 font-bold text-sm transition text-zinc-300">
-                      🔗 Generate Share Link
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => { setShareEmail(userEmail); setShowEmailModal(true); }}
-                    className="w-full py-3 rounded-xl bg-indigo-600/20 border border-indigo-500/40 hover:bg-indigo-600/30 text-indigo-300 font-bold text-sm transition"
-                  >
-                    📧 Share via Email
-                  </button>
-
-                  {shareLink && (
-                    <div className="p-3 bg-white/5 border border-white/10 rounded-xl mt-1">
-                      <p className="text-zinc-500 text-[10px] mb-1">Share link:</p>
-                      <p className="text-purple-300 text-xs font-mono break-all">{shareLink}</p>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* City Dropdown  */}
+      {/* City Dropdown */}
       {showCityDrop && cityBtnRect && (
         <>
           <div className="fixed inset-0 z-[60]" onClick={() => setShowCityDrop(false)} />
@@ -603,37 +514,12 @@ const filteredEvents = activeCategory === "All"
         </>
       )}
 
-      {/* Email Modal */}
-      {showEmailModal && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={() => setShowEmailModal(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <div className="bg-[#1a1138] border border-white/10 rounded-3xl p-8 w-full max-w-md shadow-2xl">
-              <h3 className="text-2xl font-bold mb-1">📧 Share Your Itinerary</h3>
-              <p className="text-zinc-400 text-sm mb-6">Opens your email app with the full itinerary pre-filled.</p>
-              <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-2 block">Recipient Email</label>
-              <input
-                type="email" value={shareEmail}
-                onChange={e => setShareEmail(e.target.value)}
-                placeholder="friend@example.com"
-                className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-purple-400 transition mb-2"
-                autoFocus
-              />
-              <p className="text-zinc-600 text-xs mb-5">Pre-filled with your email ({userEmail}). Change to send to a friend.</p>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-5 space-y-1">
-                <p className="text-zinc-300 text-xs font-semibold mb-2">📋 Preview:</p>
-                {cart.slice(0, 3).map(ev => (
-                  <p key={ev.id} className="text-zinc-500 text-xs">• {ev.title} — {ev.time || "TBD"} @ {ev.location}</p>
-                ))}
-                {cart.length > 3 && <p className="text-zinc-600 text-xs">+ {cart.length - 3} more…</p>}
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setShowEmailModal(false)} className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 font-bold text-sm text-zinc-300 transition hover:bg-white/10">Cancel</button>
-                <button onClick={handleShareEmail} className="flex-1 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold text-sm transition">Open Email App 📤</button>
-              </div>
-            </div>
-          </div>
-        </>
+      {/* Alert Modal */}
+      {alertModal && (
+        <AlertModal
+          message={alertModal}
+          onClose={() => setAlertModal(null)}
+        />
       )}
     </main>
   );
