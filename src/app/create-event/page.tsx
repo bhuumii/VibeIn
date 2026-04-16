@@ -7,6 +7,8 @@ import { CITIES } from "@/lib/constants"
 import Breadcrumb from "@/components/Breadcrumb";
 import ConfirmModal from "@/components/ConfirmModal";
 import AlertModal from "@/components/AlertModal";
+import DatePicker from "@/components/DatePicker";
+import TimePicker from "@/components/TimePicker";
 
 const CATEGORIES = ["Music", "Comedy", "Fun Activities", "Workshops", "Arts & Crafts", "Theatre", "Kids"];
 
@@ -187,20 +189,12 @@ export default function CreateEventPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Date *</label>
-              <input
-                type="date" required value={form.date}
-                onChange={e => setForm({ ...form, date: e.target.value })}
-                className="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400 transition [color-scheme:dark]"
-              />
+              <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block"> *</label>
+              <DatePicker value={form.date} onChange={val => setForm({...form, date: val})} label="Date" required />
             </div>
             <div>
-              <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Time *</label>
-              <input
-                type="time" required value={form.time}
-                onChange={e => setForm({ ...form, time: e.target.value })}
-                className="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400 transition [color-scheme:dark]"
-              />
+              <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block"> *</label>
+              <TimePicker value={form.time} onChange={val => setForm({...form, time: val})} label="Time" required />
             </div>
           </div>
 

@@ -7,6 +7,8 @@ import { CITIES } from "@/lib/constants"
 import Breadcrumb from "@/components/Breadcrumb";
 import ConfirmModal from "@/components/ConfirmModal";
 import AlertModal from "@/components/AlertModal";
+import DatePicker from "@/components/DatePicker";
+import TimePicker from "@/components/TimePicker";
 
 // ── Types 
 interface Event {
@@ -263,13 +265,9 @@ export default function PlanYourDayPage() {
 
           <div className="flex-1 min-w-[160px]">
             <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-2 block">
-              Date <span className="text-zinc-600 normal-case font-normal">(for itinerary label)</span>
+              <span className="text-zinc-600 normal-case font-normal"></span>
             </label>
-            <input
-              type="date" value={date}
-              onChange={e => setDate(e.target.value)}
-              className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-purple-400 transition font-semibold text-sm"
-            />
+            <DatePicker value={date} onChange={setDate} label="Date" />
           </div>
 
           <div className="flex-1 min-w-[300px]">

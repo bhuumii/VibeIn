@@ -8,6 +8,8 @@ import Breadcrumb from "@/components/Breadcrumb";
 import { toast } from "sonner";
 import ConfirmModal from "@/components/ConfirmModal";
 import AlertModal from "@/components/AlertModal";
+import DatePicker from "@/components/DatePicker";
+import TimePicker from "@/components/TimePicker";
 
 const CATEGORIES = ["Music", "Comedy", "Fun Activities", "Workshops", "Arts & Crafts", "Theatre", "Kids"];
 
@@ -339,20 +341,12 @@ export default function VibeRoomPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Date</label>
-                  <input
-                    type="date" value={eventDate}
-                    onChange={e => setEventDate(e.target.value)}
-                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-purple-400 transition [color-scheme:dark]"
-                  />
+                  <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block"></label>
+                 <DatePicker value={eventDate} onChange={setEventDate} label="Date" />
                 </div>
                 <div>
-                  <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Time</label>
-                  <input
-                    type="time" value={eventTime}
-                    onChange={e => setEventTime(e.target.value)}
-                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-purple-400 transition [color-scheme:dark]"
-                  />
+                  <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block"></label>
+                 <TimePicker value={eventTime} onChange={setEventTime} label="Time" />
                 </div>
               </div>
 

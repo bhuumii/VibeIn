@@ -180,7 +180,7 @@ const cityBtnRef = useRef<HTMLButtonElement>(null);
     onClick={handleCityDropToggle}
     className="p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white focus:outline-none focus:border-purple-400 flex items-center gap-3 font-medium"
   >
-    📍 {selectedCity}
+     {selectedCity}
     <span className={`text-[10px] transition-transform ${showCityDrop ? "rotate-180" : ""}`}>▼</span>
   </button>
 </div>
