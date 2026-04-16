@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { CITIES } from "@/lib/constants";
+import { CITIES } from "@/lib/constants"
+import Breadcrumb from "@/components/Breadcrumb";
 
 const CATEGORIES = ["Music", "Comedy", "Fun Activities", "Workshops", "Arts & Crafts", "Theatre", "Kids"];
 
@@ -148,13 +149,19 @@ useEffect(() => {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#140b2d] via-[#1f1147] to-[#2a145c] text-white px-6 py-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="pointer-events-none fixed inset-0 z-0">
+  <div className="absolute top-[-100px] left-[-100px] w-[500px] h-[500px] bg-purple-600/20 blur-[160px] rounded-full" />
+  <div className="absolute bottom-[-100px] right-[-100px] w-[400px] h-[400px] bg-indigo-600/20 blur-[140px] rounded-full" />
+</div>
 
-        <a href="/" className="text-zinc-400 mb-6 inline-block hover:text-white transition">
-          ← Back to VibeIn'
-        </a>
+      <div className="relative z-10 max-w-4xl mx-auto">
 
-        <h1 className="text-4xl font-bold mb-6">✨ Create Your Event</h1>
+           <Breadcrumb crumbs={[
+  { label: "Home", href: "/" },
+  { label: "Create Event" }
+]} />
+
+        <h1 className="text-4xl font-bold mb-6">Create Your Event</h1>
 
         <form onSubmit={handleSubmit} className="bg-white/10 p-8 rounded-2xl border border-white/20 space-y-4">
 

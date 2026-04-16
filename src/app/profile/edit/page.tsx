@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { CITIES } from "@/lib/constants";
+import { CITIES } from "@/lib/constants"
+import Breadcrumb from "@/components/Breadcrumb";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -120,7 +121,11 @@ useEffect(() => {
 
       <div className="relative z-10 max-w-2xl mx-auto">
         <a href="/profile" className="text-zinc-400 hover:text-white text-sm mb-8 inline-block">
-          ← Back to Profile
+          <Breadcrumb crumbs={[
+  { label: "Home", href: "/" },
+  { label: "Profile", href: "/profile" },
+  { label: "Edit Profile" }
+]} />
         </a>
 
         <h1 className="text-3xl font-bold mb-8">Edit Profile</h1>

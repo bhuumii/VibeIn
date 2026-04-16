@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Breadcrumb from "@/components/Breadcrumb";
 
 interface SavedPlan {
   id: string;
@@ -92,9 +93,12 @@ export default function MyItinerariesPage() {
       </div>
 
       <div className="relative z-10 max-w-3xl mx-auto">
-        <button onClick={() => router.push("/plan-your-day")} className="text-zinc-500 hover:text-white text-sm mb-4 block transition">
-          ← Back to Plan Your Day
-        </button>
+        <Breadcrumb crumbs={[
+  { label: "Home", href: "/" },
+  { label: "Plan Your Day", href: "/plan-your-day" },
+  { label: "My Itineraries" }
+]} />
+
         <h1 className="text-4xl font-bold mb-2">📋 My Itineraries</h1>
         <p className="text-zinc-400 text-sm mb-8">All your saved day plans.</p>
 

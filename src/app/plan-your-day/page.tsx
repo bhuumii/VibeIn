@@ -3,9 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { CITIES } from "@/lib/constants";
+import { CITIES } from "@/lib/constants"
+import Breadcrumb from "@/components/Breadcrumb";
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ── Types 
 interface Event {
   id: string;
   title: string;
@@ -21,7 +22,7 @@ interface Event {
 
 
 
-// exact match with homepage — note "Fun Activities " has trailing space
+
 const ALL_CATEGORIES = ["All", "Music", "Comedy", "Fun Activities", "Workshops", "Arts & Craft", "Theatre", "Kids"];
 
 const MOODS = [
@@ -33,7 +34,7 @@ const MOODS = [
   { label: "Romantic 💫",    value: "romantic",    color: "from-rose-400 to-pink-600" },
 ];
 
-// mood → exact category strings from DB
+
 const MOOD_TO_CATEGORIES: Record<string, string[]> = {
   adventurous: ["Fun Activities", "Workshops"],
   chill:       ["Arts & Crafts", "Workshops", "Kids"],
@@ -73,7 +74,7 @@ function buildMailtoLink(
   return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(`My Day Plan in ${city} — ${formattedDate}`)}&body=${encodeURIComponent(body)}`;
 }
 
-// ── AI Suggest ─────────────────────────────────────────────────────────────
+// ── AI Suggest 
 async function getAISuggestion(mood: string, city: string, events: Event[]): Promise<string[]> {
   try {
     const relevantCats = MOOD_TO_CATEGORIES[mood] || [];
@@ -103,7 +104,7 @@ Reply ONLY with a JSON array: ["id1","id2"]. No explanation.`
   } catch { return []; }
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
+// ── Component
 export default function PlanYourDayPage() {
   const router = useRouter();
   const [loading, setLoading]           = useState(true);
@@ -145,7 +146,7 @@ export default function PlanYourDayPage() {
       setUser(session.user);
       setUserEmail(session.user.email || "");
 
-      // use user's city from profile
+    
       const { data: profile } = await supabase
         .from("profiles").select("city").eq("id", session.user.id).single();
       if (profile?.city && CITIES.includes(profile.city)) setCity(profile.city);
@@ -164,7 +165,7 @@ export default function PlanYourDayPage() {
     setMood("");
   }, [city, user]);
 
-  // Close city dropdown on scroll
+  
 useEffect(() => {
   const handleScroll = () => {
     if (showCityDrop) setShowCityDrop(false);
@@ -184,7 +185,7 @@ useEffect(() => {
     setEventsLoading(false);
   };
 
-  // filtered events for the picker
+ 
   const normalizecat = (s: string) => s.trim().toLowerCase();
 
 const filteredEvents = activeCategory === "All"
@@ -282,12 +283,13 @@ const filteredEvents = activeCategory === "All"
 
         {/* ── Header ── */}
         <div className="mb-8">
-          <button onClick={() => router.push("/")} className="text-zinc-500 hover:text-white text-sm mb-2 block transition">
-            ← Back to VibeIn'
-          </button>
+          <Breadcrumb crumbs={[
+  { label: "Home", href: "/" },
+  { label: "Plan Your Day" }
+]} />
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold">🗓️ Plan Your Day</h1>
+              <h1 className="text-4xl font-bold">Plan Your Day</h1>
               <p className="text-zinc-400 mt-1 text-sm">Pick a mood, build your itinerary, save & share.</p>
             </div>
             <div className="flex gap-3">
@@ -580,7 +582,7 @@ const filteredEvents = activeCategory === "All"
         </div>
       </div>
 
-      {/* City Dropdown — fixed to escape stacking context */}
+      {/* City Dropdown  */}
       {showCityDrop && cityBtnRect && (
         <>
           <div className="fixed inset-0 z-[60]" onClick={() => setShowCityDrop(false)} />

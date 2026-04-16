@@ -3,7 +3,10 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase"
-import { CITIES } from "@/lib/constants";
+import { CITIES } from "@/lib/constants"
+import Breadcrumb from "@/components/Breadcrumb";
+
+const CATEGORIES = ["Music", "Comedy", "Fun Activities", "Workshops", "Arts & Crafts", "Theatre", "Kids"];
 
 export default function VibeRoomPage() {
   const router = useRouter();
@@ -24,13 +27,19 @@ export default function VibeRoomPage() {
   const [userCity, setUserCity] = useState("Delhi");
   const [showCityDropdown, setShowCityDropdown] = useState(false);
 
-
   // Form state
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
+  const [eventTime, setEventTime] = useState("");
   const [eventLocation, setEventLocation] = useState("");
+  const [eventCategory, setEventCategory] = useState("Music");
   const [postMessage, setPostMessage] = useState("");
   const [posting, setPosting] = useState(false);
+
+  // Category dropdown
+  const [showCatDrop, setShowCatDrop] = useState(false);
+  const [catBtnRect, setCatBtnRect] = useState<DOMRect | null>(null);
+  const catBtnRef = useRef<HTMLButtonElement>(null);
 
   // 1. Initial Load and Auth
   useEffect(() => {
@@ -64,11 +73,10 @@ export default function VibeRoomPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "vibe_posts" }, () => loadPosts(userCity))
       .on("postgres_changes", { event: "*", schema: "public", table: "vibe_reactions" }, () => loadReactions())
       .subscribe();
-    
     return () => { supabase.removeChannel(channel); };
   }, [authorized, userCity]);
 
-  // 3. Chat Real-time Listener (Optimistic)
+  // 3. Chat Real-time Listener
   useEffect(() => {
     if (!activeGroupChat) return;
 
@@ -83,8 +91,8 @@ export default function VibeRoomPage() {
     fetchMessages();
 
     const chatChannel = supabase.channel(`chat_${activeGroupChat.id}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', schema: 'public', table: 'vibe_messages', filter: `post_id=eq.${activeGroupChat.id}` 
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'vibe_messages', filter: `post_id=eq.${activeGroupChat.id}`
       }, async (payload) => {
         if (payload.new.sender_id !== user.id) {
           const { data: msgWithProfile } = await supabase
@@ -117,16 +125,31 @@ export default function VibeRoomPage() {
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
     setPosting(true);
-    const dataObj = { event_title: eventTitle, event_date: eventDate, event_location: eventLocation, message: postMessage, city: userCity, user_id: user.id };
-    
+    const dataObj = {
+      event_title: eventTitle,
+      event_date: eventDate,
+      event_time: eventTime,
+      event_location: eventLocation,
+      event_category: eventCategory,
+      message: postMessage,
+      city: userCity,
+      user_id: user.id
+    };
+
     if (editingPost) {
       await supabase.from("vibe_posts").update(dataObj).eq("id", editingPost.id);
     } else {
       await supabase.from("vibe_posts").insert(dataObj);
     }
-    
-    setShowForm(false); setEditingPost(null);
-    setEventTitle(""); setEventDate(""); setEventLocation(""); setPostMessage("");
+
+    setShowForm(false);
+    setEditingPost(null);
+    setEventTitle("");
+    setEventDate("");
+    setEventTime("");
+    setEventLocation("");
+    setEventCategory("Music");
+    setPostMessage("");
     setPosting(false);
     loadPosts(userCity);
   };
@@ -135,7 +158,9 @@ export default function VibeRoomPage() {
     setEditingPost(post);
     setEventTitle(post.event_title);
     setEventDate(post.event_date || "");
+    setEventTime(post.event_time || "");
     setEventLocation(post.event_location || "");
+    setEventCategory(post.event_category || "Music");
     setPostMessage(post.message || "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -164,7 +189,6 @@ export default function VibeRoomPage() {
   const openGroupChat = (post: any) => {
     const userReaction = reactions.find(r => r.post_id === post.id && r.user_id === user.id);
     const isAllowed = post.user_id === user.id || userReaction?.type === 'like';
-
     if (!isAllowed) {
       alert("Click 'Interested' (👍) to join the group chat!");
       return;
@@ -193,9 +217,14 @@ export default function VibeRoomPage() {
     });
 
     if (error) {
-       setGroupMessages(prev => prev.filter(m => m.id !== tempMsg.id));
-       alert("Failed to send message.");
+      setGroupMessages(prev => prev.filter(m => m.id !== tempMsg.id));
+      alert("Failed to send message.");
     }
+  };
+
+  const handleCatDropToggle = () => {
+    if (!showCatDrop && catBtnRef.current) setCatBtnRect(catBtnRef.current.getBoundingClientRect());
+    setShowCatDrop(!showCatDrop);
   };
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [groupMessages]);
@@ -205,26 +234,28 @@ export default function VibeRoomPage() {
   if (loading) return <div className="min-h-screen bg-[#0f0a24] flex items-center justify-center text-white">Loading...</div>;
 
   return (
-    <main className="relative min-h-screen bg-[#0f0a24] text-white px-6 py-8 overflow-x-hidden">
+    <main className="relative min-h-screen bg-gradient-to-br from-[#140b2d] via-[#1f1147] to-[#2a145c] text-white px-6 py-8 overflow-x-hidden">
       <div className={`relative z-10 max-w-3xl mx-auto transition-all duration-300 ${activeGroupChat ? "mr-96" : ""}`}>
-        
+        <Breadcrumb crumbs={[
+          { label: "Home", href: "/" },
+          { label: "Vibe with Strangers" }
+        ]} />
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <button onClick={() => router.push('/')} className="text-zinc-500 hover:text-white text-sm mb-2 block">← Back to VibeIn'</button>
-            <h1 className="text-4xl font-bold">👥 Vibe with Strangers</h1>
-            
+            <h1 className="text-4xl font-bold">Vibe with Strangers</h1>
             <div className="text-zinc-400 mt-1 flex items-center gap-1">
               Events in{" "}
               <div className="relative inline-block">
-                <button 
+                <button
                   onClick={() => setShowCityDropdown(!showCityDropdown)}
                   className="text-purple-400 hover:text-purple-300 font-bold underline decoration-dotted underline-offset-4 flex items-center gap-1 transition-all"
                 >
                   {userCity}
                   <span className={`text-[10px] transition-transform ${showCityDropdown ? 'rotate-180' : ''}`}>▼</span>
                 </button>
-                
+
                 {showCityDropdown && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowCityDropdown(false)}></div>
@@ -250,7 +281,10 @@ export default function VibeRoomPage() {
               </div>
             </div>
           </div>
-          <button onClick={() => { setEditingPost(null); setShowForm(!showForm); }} className="bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-xl font-bold transition">
+          <button
+            onClick={() => { setEditingPost(null); setShowForm(!showForm); }}
+            className="bg-purple-600 hover:bg-purple-500 px-6 py-3 rounded-xl font-bold transition"
+          >
             {showForm ? "Cancel" : "+ Post a Vibe"}
           </button>
         </div>
@@ -258,16 +292,91 @@ export default function VibeRoomPage() {
         {/* Post Form */}
         {showForm && (
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 mb-8 shadow-2xl">
-            <h2 className="text-xl font-bold mb-4 text-purple-300">{editingPost ? "✏️ Edit Vibe" : "📣 Create a Vibe Post"}</h2>
+            <h2 className="text-xl font-bold mb-4 text-purple-300">
+              {editingPost ? "✏️ Edit Vibe" : "📣 Create a Vibe Post"}
+            </h2>
             <form onSubmit={handlePost} className="space-y-4">
-              <input type="text" value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} required placeholder="Event Name" className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-400 outline-none" />
-              <div className="grid grid-cols-2 gap-4">
-                <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none" />
-                <input type="text" value={eventLocation} onChange={(e) => setEventLocation(e.target.value)} placeholder="Where is it?" className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none" />
+
+              {/* Title */}
+              <div>
+                <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Event Name *</label>
+                <input
+                  type="text" value={eventTitle}
+                  onChange={e => setEventTitle(e.target.value)}
+                  required placeholder="e.g. Poetry Open Mic Night"
+                  className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white focus:border-purple-400 outline-none transition placeholder-zinc-600"
+                />
               </div>
-              <textarea value={postMessage} onChange={(e) => setPostMessage(e.target.value)} placeholder="Add details..." rows={3} className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none resize-none" />
-              <button type="submit" disabled={posting} className="w-full py-4 rounded-xl bg-purple-600 hover:bg-purple-500 font-bold transition">
-                {posting ? "Saving..." : editingPost ? "Update Vibe" : "Post Vibe 🚀"}
+
+              {/* Date + Time */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Date</label>
+                  <input
+                    type="date" value={eventDate}
+                    onChange={e => setEventDate(e.target.value)}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-purple-400 transition [color-scheme:dark]"
+                  />
+                </div>
+                <div>
+                  <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Time</label>
+                  <input
+                    type="time" value={eventTime}
+                    onChange={e => setEventTime(e.target.value)}
+                    className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-purple-400 transition [color-scheme:dark]"
+                  />
+                </div>
+              </div>
+
+              {/* Venue */}
+              <div>
+                <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Venue / Location *</label>
+                <input
+                  type="text" value={eventLocation}
+                  onChange={e => setEventLocation(e.target.value)}
+                  required placeholder="e.g. The Piano Man Jazz Club, Delhi"
+                  className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none focus:border-purple-400 transition placeholder-zinc-600"
+                />
+              </div>
+
+              {/* City + Category */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">City</label>
+                  <div className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-zinc-400 text-sm">
+                    📍 {userCity} <span className="text-zinc-600 text-xs">(from your profile)</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Category</label>
+                  <button
+                    type="button" ref={catBtnRef}
+                    onClick={handleCatDropToggle}
+                    className="w-full flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 text-white hover:border-purple-400 transition font-medium"
+                  >
+                    <span>🏷️ {eventCategory}</span>
+                    <span className={`text-[10px] transition-transform ${showCatDrop ? "rotate-180" : ""}`}>▼</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Details */}
+              <div>
+                <label className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mb-1 block">Details / Description</label>
+                <textarea
+                  value={postMessage}
+                  onChange={e => setPostMessage(e.target.value)}
+                  placeholder="Tell people what this event is about..."
+                  rows={3}
+                  className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white outline-none resize-none focus:border-purple-400 transition placeholder-zinc-600"
+                />
+              </div>
+
+              <button
+                type="submit" disabled={posting}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-400 hover:to-fuchsia-400 font-bold transition disabled:opacity-50"
+              >
+                {posting ? "Saving..." : editingPost ? "Update Vibe ✅" : "Post Vibe 🚀"}
               </button>
             </form>
           </div>
@@ -310,10 +419,18 @@ export default function VibeRoomPage() {
                   </div>
 
                   <div className="mb-6">
-                    <h3 className="text-2xl font-bold text-white mb-2">🎉 {post.event_title}</h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-2xl font-bold text-white">🎉 {post.event_title}</h3>
+                      {post.event_category && (
+                        <span className="bg-purple-600/20 border border-purple-500/30 text-purple-300 text-xs font-bold px-2 py-0.5 rounded-full">
+                          {post.event_category}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-4 text-zinc-400 text-sm mb-3">
-                      <span>📅 {post.event_date}</span>
-                      <span>📍 {post.event_location}</span>
+                      {post.event_date && <span>📅 {post.event_date}</span>}
+                      {post.event_time && <span>🕐 {post.event_time}</span>}
+                      {post.event_location && <span>📍 {post.event_location}</span>}
                     </div>
                     <p className="text-zinc-300 leading-relaxed">{post.message}</p>
                   </div>
@@ -328,7 +445,6 @@ export default function VibeRoomPage() {
                       </button>
                       <span className="text-zinc-500 text-sm ml-2">{postLikes.length} interested</span>
                     </div>
-
                     <button onClick={() => openGroupChat(post)} className="bg-purple-600 hover:bg-purple-500 px-6 py-2 rounded-xl text-sm font-bold shadow-lg transition">💬 Chat</button>
                   </div>
                 </div>
@@ -348,7 +464,7 @@ export default function VibeRoomPage() {
             </div>
             <button onClick={() => setActiveGroupChat(null)} className="p-2 hover:bg-white/10 rounded-full transition">✕</button>
           </div>
-          
+
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {groupMessages.length === 0 && <p className="text-center text-zinc-600 mt-10">No messages yet. Say hi!</p>}
             {groupMessages.map((msg, i) => {
@@ -376,6 +492,27 @@ export default function VibeRoomPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Category Dropdown */}
+      {showCatDrop && catBtnRect && (
+        <>
+          <div className="fixed inset-0 z-[60]" onClick={() => setShowCatDrop(false)} />
+          <div
+            className="fixed z-[70] bg-[#1a1138] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            style={{ top: catBtnRect.bottom + 8, left: catBtnRect.left, width: catBtnRect.width }}
+          >
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat} type="button"
+                onClick={() => { setEventCategory(cat); setShowCatDrop(false); }}
+                className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors ${eventCategory === cat ? "bg-purple-600 text-white" : "hover:bg-white/10 text-zinc-300"}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </main>
   );

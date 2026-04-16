@@ -123,6 +123,7 @@ const cityBtnRef = useRef<HTMLButtonElement>(null);
     setSelectedCategory("All");
     setSearch("");
     fetchEvents(city);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleCityDropToggle = () => {

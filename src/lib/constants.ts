@@ -7,7 +7,7 @@ export const CITIES = [
     "Pune",
       "Ludhiana",
         "Mohali",
-          "Luchnow",
+          "Lucknow",
             "Noida",
             "Gurugram",
              "Jaipur",

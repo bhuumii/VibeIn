@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import Breadcrumb from "@/components/Breadcrumb";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -43,9 +44,10 @@ export default function ProfilePage() {
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-pink-500/20 blur-[150px] rounded-full" />
 
       <div className="relative z-10 max-w-2xl mx-auto">
-        <a href="/" className="text-zinc-400 hover:text-white text-sm mb-8 inline-block">
-          ← Back to VibeIn'
-        </a>
+     <Breadcrumb crumbs={[
+  { label: "Home", href: "/" },
+  { label: "Profile" }
+]} />
 
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-8">
 

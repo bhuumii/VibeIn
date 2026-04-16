@@ -118,7 +118,7 @@ export default function Navbar() {
   return (
     <nav className="flex justify-between items-center mb-16">
       <a href="/">
-        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-300 to-pink-400 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-300 to-pink-400 bg-clip-text text-transparent">
           VibeIn'
         </h1>
       </a>
