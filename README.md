@@ -1,40 +1,107 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<img width="1915" height="978" alt="image" src="https://github.com/user-attachments/assets/0da501db-ccb7-4319-85dc-b8a670981f09" /># VibeIn 🎉
+### Discover & Plan Events Across India's Top Cities
 
-## Getting Started
+VibeIn is a full-stack event discovery and social planning platform that scrapes and aggregates events across major Indian cities — Delhi, Mumbai, Bangalore, Hyderabad, Chandigarh, Pune and many more, letting users discover, plan, and experience their city together.
 
-First, run the development server:
+
+**🌐 Live Demo:** [vibe-in-rho.vercel.app](https://vibe-in-rho.vercel.app/)  
+
+---
+
+## What Problem Does It Solve?
+
+Finding events in Indian cities is fragmented, you check BookMyShow, Instagram, local community pages, and still miss things. There's no single place to see what's happening around you, and even when you find an event, going alone feels awkward.
+
+**VibeIn solves this in two ways:**
+1. **Aggregation** — We scrape public event data from multiple sources so you see everything in one feed.
+2. **Social layer** — You don't just find events, you find *people* going to them. Create a "vibe," join a group chat, show up together.
+
+---
+
+## How It Works
+[Public Event Sites] → [Scrapers] → [Supabase DB] → [Next.js Frontend] → [Users]
+↓
+[Claude AI for Itineraries]
+↓
+[Realtime Chat for Vibes]
+
+### Scraping Approach
+- **Public data only** — no login bypass, no paywall circumvention
+- **Respectful crawling** — reasonable delays between requests, no server hammering
+- **Graceful failures** — if a source is down or changes structure, the rest of the platform keeps working
+- Sources: BookMyShow public listings, MeraEvents webiste, Urbanaut website, local event pages, etc.
+
+---
+
+## Features
+
+### Multi-City Event Discovery
+- Browse curated events across many cities
+- Filter by 7 categories: Music, Comedy, Fun Activities, Workshops, Arts & Crafts, Theatre, Kids
+- Search by title, location, or vibe
+
+### Plan Your Day (AI-Powered)
+- Pick a mood: Adventurous, Chill, Social, Cultural, Creative, or Romantic
+- Claude AI suggests a personalised itinerary based on your mood and city
+- Cart-style picker — add, remove, reorder events
+- Save itineraries to your profile
+
+### Vibe with Strangers
+- Post an event you're attending and find others going too
+- React with Interested or Not interested
+- Join a private group chat for the event
+- Real-time messaging powered by Supabase Realtime
+
+### Create Your Event
+- Any user can host a pop-up, workshop, or meetup
+- Events appear live on the homepage under the right city and category
+- Full edit and delete control for your own events
+
+### User Profiles
+- Custom avatar picker
+- City preference personalises your homepage feed
+- Edit username, bio, and password
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 14 (App Router), TypeScript |
+| Styling | Tailwind CSS |
+| Backend & DB | Supabase (PostgreSQL) |
+| Auth | Supabase Auth |
+| Real-time | Supabase Realtime |
+| AI | Anthropic Claude API (claude-sonnet-4) |
+| Scraping | Playwright, BeautifulSoup |
+| Deployment | Vercel |
+
+---
+
+## Run Locally
 
 ```bash
+# Clone the repo
+git clone https://github.com/bhuumii/vibein.git
+cd vibein
+
+# Install dependencies
+npm install
+
+
+# Run the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+<img width="1842" height="943" alt="image" src="https://github.com/user-attachments/assets/320a4f04-66cc-4499-8fd1-0594130351da" />
+<img width="1842" height="943" alt="image" src="https://github.com/user-attachments/assets/69a8d834-28f2-48a8-a661-e0a361f4e607" />
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# VibeIn
->>>>>>> 7b0805e7c2626e3e3fe5b2b89092e14d4e1ae6b8
+## Future Improvements
+- Expand to more cities 
+- Improve the use of AI in itinerary creation for smarter, more tailored day plans
+- Calendar sync (Google Calendar, Apple Calendar)
+- Event recommendations based on attendance history
