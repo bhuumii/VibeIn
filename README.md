@@ -29,7 +29,7 @@ Finding events in Indian cities is fragmented, you check BookMyShow, Instagram, 
 - **Public data only** — no login bypass, no paywall circumvention
 - **Respectful crawling** — reasonable delays between requests, no server hammering
 - **Graceful failures** — if a source is down or changes structure, the rest of the platform keeps working
-- Sources: BookMyShow public listings, AllEvents.in , MeraEvents webiste, local event pages, etc.
+- Sources: BookMyShow public listings, MeraEvents webiste, local event pages, etc.
 
 ---
 
