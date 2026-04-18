@@ -80,8 +80,7 @@ const cityBtnRef = useRef<HTMLButtonElement>(null);
   .from("events")
   .select("id, title, city, category, date, time, location, price, image_url, source_url")
   .ilike("city", city)
-  .order("created_at", { ascending: false })
-  .limit(50);
+  .order("created_at", { ascending: false });
     setEvents(data || []);
     setFiltered(data || []);
     setLoading(false);
