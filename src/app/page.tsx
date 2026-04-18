@@ -76,7 +76,7 @@ const cityBtnRef = useRef<HTMLButtonElement>(null);
 
   const fetchEvents = async (city: string) => {
     setLoading(true);
-  const { data } = await supabase
+   const { data } = await supabase
   .from("events")
   .select("id, title, city, category, date, time, location, price, image_url, source_url")
   .ilike("city", city)
