@@ -72,17 +72,16 @@ const cityBtnRef = useRef<HTMLButtonElement>(null);
 
 
 
-  useEffect(() => {
-    fetchEvents(selectedCity);
-  }, []);
+
 
   const fetchEvents = async (city: string) => {
     setLoading(true);
-    const { data } = await supabase
-      .from("events")
-      .select("*")
-      .ilike("city", city)
-      .order("created_at", { ascending: false });
+   const { data } = await supabase
+  .from("events")
+  .select("id, title, city, category, date, time, location, price, image_url, source_url")
+  .ilike("city", city)
+  .order("created_at", { ascending: false })
+  .limit(50);
     setEvents(data || []);
     setFiltered(data || []);
     setLoading(false);
@@ -246,10 +245,11 @@ const cityBtnRef = useRef<HTMLButtonElement>(null);
                   <div className="relative h-48 bg-white/5 overflow-hidden">
                     {event.image_url ? (
                       <img
-                        src={event.image_url}
-                        alt={event.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                      />
+  src={event.image_url}
+  alt={event.title}
+  loading="lazy"
+  className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+/>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-5xl">
                         {event.category === "Music" ? "🎵" :
